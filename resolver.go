@@ -62,6 +62,21 @@ func NewResolver(c ResolvSettings) *Resolver {
 	return r
 }
 
+var resolvers chan func()
+
+func init() {
+	resolvers = make(chan func(), 100)
+	var f func()
+	f = func() {
+		defer f()
+		j := <-resolvers
+		j()
+	}
+	for i := 0; i < 100; i++ {
+		go f()
+	}
+}
+
 func (r *Resolver) parseServerListFile(buf *os.File) {
 	scanner := bufio.NewScanner(buf)
 	for scanner.Scan() {
@@ -171,7 +186,11 @@ func (r *Resolver) Lookup(net string, req *dns.Msg) (message *dns.Msg, err error
 	// Start lookup on each nameserver top-down, in every second
 	nameservers := r.Nameservers(qname)
 	for _, nameserver := range *nameservers {
-		go L(nameserver)
+		//go L(nameserver)
+		resolvers <- func() {
+			L(nameserver)
+		}
+
 	}
 	time.AfterFunc(time.Duration(settings.ResolvConfig.Interval)*time.Millisecond, func() {
 		res <- nil
