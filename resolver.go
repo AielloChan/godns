@@ -186,9 +186,9 @@ func (r *Resolver) Lookup(net string, req *dns.Msg) (message *dns.Msg, err error
 	// Start lookup on each nameserver top-down, in every second
 	nameservers := r.Nameservers(qname)
 	for _, nameserver := range *nameservers {
-		//go L(nameserver)
+		var ns = nameserver
 		resolvers <- func() {
-			L(nameserver)
+			L(ns)
 		}
 
 	}
